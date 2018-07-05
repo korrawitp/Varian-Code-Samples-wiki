@@ -1,2 +1,2 @@
-Welcome to the samples wiki!
+Welcome to the VarianAPI wiki!
 (Under Construction... picking up pieces from codeplex)
