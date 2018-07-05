@@ -1,0 +1,238 @@
+<div class="wikidoc">
+<h2>Overview</h2>
+<p>Generally, when you are working with the <strong>VMS.TPS.Common.Model.API.Application</strong>, you are going to have some waiting to do before your method calls are complete. Wouldn't it be great if you could use the .Net 4.5
+<strong>async</strong> and <strong>await</strong> operators to return from method calls and keep your UI from locking. Here is what doesn't work:</p>
+<pre style="font-size:13px; font-family:Consolas; background:white; color:black">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">public</span>&nbsp;<span style="color:blue">async</span>&nbsp;<span style="color:#2b91af">Task</span>&nbsp;Login(<span style="color:blue">string</span>&nbsp;username,&nbsp;<span style="color:blue">string</span>&nbsp;password)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">var</span>&nbsp;task&nbsp;=&nbsp;<span style="color:#2b91af">Task</span>.Factory.StartNew(()&nbsp;=&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_app&nbsp;=&nbsp;<span style="color:#2b91af">Application</span>.CreateApplication(username,&nbsp;password);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">await</span>&nbsp;task;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</pre>
+<p><br>
+This is the general way you can create asynchronous methods, but because the Application instance needs to be accessed inside an STAThread, you are going to have some problems if you do it this way. Instead, let's make sure the Application instance is always
+ accessed the right way.<br>
+<br>
+</p>
+<h3>The Wrapper</h3>
+<p>First, create a wrapper class for to hold a singleton reference to your Application instance.</p>
+<pre style="font-size:13px; font-family:Consolas; background:white; color:black">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">public</span>&nbsp;<span style="color:blue">class</span>&nbsp;<span style="color:#2b91af">ESAPI</span>
+&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">static</span>&nbsp;VMS.TPS.Common.Model.API.<span style="color:#2b91af">Application</span>&nbsp;_app;
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">public</span>&nbsp;ESAPI()
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">public</span>&nbsp;VMS.TPS.Common.Model.API.<span style="color:#2b91af">Application</span>&nbsp;App
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">get</span>&nbsp;{&nbsp;<span style="color:blue">return</span>&nbsp;_app;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;}</pre>
+<p>I use a wrapper class so that I can do dependency injection on all of my views (beyond the scope of this tutorial). To get the Thread apartment set correctly, we will roll our own Task Scheduler. Create a class called
+<a href="http://blogs.msdn.com/b/pfxteam/archive/2010/04/07/9990421.aspx">StaTaskScheduler
+</a>that looks like:</p>
+<h3>StaTaskScheduler</h3>
+<pre style="font-size:13px; font-family:Consolas; background:white; color:black"><span style="color:blue">public</span>&nbsp;<span style="color:blue">sealed</span>&nbsp;<span style="color:blue">class</span>&nbsp;<span style="color:#2b91af">StaTaskScheduler</span>&nbsp;:&nbsp;<span style="color:#2b91af">TaskScheduler</span>,&nbsp;<span style="color:#2b91af">IDisposable</span>
+&nbsp;&nbsp;&nbsp;&nbsp;{
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:gray">///</span><span style="color:green">&nbsp;</span><span style="color:gray">&lt;summary&gt;</span><span style="color:green">Stores&nbsp;the&nbsp;queued&nbsp;tasks&nbsp;to&nbsp;be&nbsp;executed&nbsp;by&nbsp;our&nbsp;pool&nbsp;of&nbsp;STA&nbsp;threads.</span><span style="color:gray">&lt;/summary&gt;</span>
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">private</span>&nbsp;<span style="color:#2b91af">BlockingCollection</span>&lt;<span style="color:#2b91af">Task</span>&gt;&nbsp;_tasks;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:gray">///</span><span style="color:green">&nbsp;</span><span style="color:gray">&lt;summary&gt;</span><span style="color:green">The&nbsp;STA&nbsp;threads&nbsp;used&nbsp;by&nbsp;the&nbsp;scheduler.</span><span style="color:gray">&lt;/summary&gt;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">private</span>&nbsp;<span style="color:blue">readonly</span>&nbsp;<span style="color:#2b91af">List</span>&lt;<span style="color:#2b91af">Thread</span>&gt;&nbsp;_threads;
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:gray">///</span><span style="color:green">&nbsp;</span><span style="color:gray">&lt;summary&gt;</span><span style="color:green">Initializes&nbsp;a&nbsp;new&nbsp;instance&nbsp;of&nbsp;the&nbsp;StaTaskScheduler&nbsp;class&nbsp;with&nbsp;the&nbsp;specified&nbsp;concurrency&nbsp;level.</span><span style="color:gray">&lt;/summary&gt;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:gray">///</span><span style="color:green">&nbsp;</span><span style="color:gray">&lt;param&nbsp;name=</span><span style="color:gray">&quot;numberOfThreads&quot;</span><span style="color:gray">&gt;</span><span style="color:green">The&nbsp;number&nbsp;of&nbsp;threads&nbsp;that&nbsp;should&nbsp;be&nbsp;created&nbsp;and&nbsp;used&nbsp;by&nbsp;this&nbsp;scheduler.</span><span style="color:gray">&lt;/param&gt;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">public</span>&nbsp;StaTaskScheduler(<span style="color:blue">int</span>&nbsp;numberOfThreads)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:green">//&nbsp;Validate&nbsp;arguments</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">if</span>&nbsp;(numberOfThreads&nbsp;&lt;&nbsp;1)&nbsp;<span style="color:blue">throw</span>&nbsp;<span style="color:blue">new</span>&nbsp;<span style="color:#2b91af">ArgumentOutOfRangeException</span>(<span style="color:#a31515">&quot;concurrencyLevel&quot;</span>);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:green">//&nbsp;Initialize&nbsp;the&nbsp;tasks&nbsp;collection</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_tasks&nbsp;=&nbsp;<span style="color:blue">new</span>&nbsp;<span style="color:#2b91af">BlockingCollection</span>&lt;<span style="color:#2b91af">Task</span>&gt;();
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:green">//&nbsp;Create&nbsp;the&nbsp;threads&nbsp;to&nbsp;be&nbsp;used&nbsp;by&nbsp;this&nbsp;scheduler</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_threads&nbsp;=&nbsp;<span style="color:#2b91af">Enumerable</span>.Range(0,&nbsp;numberOfThreads).Select(i&nbsp;=&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">var</span>&nbsp;thread&nbsp;=&nbsp;<span style="color:blue">new</span>&nbsp;<span style="color:#2b91af">Thread</span>(()&nbsp;=&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:green">//&nbsp;Continually&nbsp;get&nbsp;the&nbsp;next&nbsp;task&nbsp;and&nbsp;try&nbsp;to&nbsp;execute&nbsp;it.</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:green">//&nbsp;This&nbsp;will&nbsp;continue&nbsp;until&nbsp;the&nbsp;scheduler&nbsp;is&nbsp;disposed&nbsp;and&nbsp;no&nbsp;more&nbsp;tasks&nbsp;remain.</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">foreach</span>&nbsp;(<span style="color:blue">var</span>&nbsp;t&nbsp;<span style="color:blue">in</span>&nbsp;_tasks.GetConsumingEnumerable())
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TryExecuteTask(t);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;thread.IsBackground&nbsp;=&nbsp;<span style="color:blue">true</span>;
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;thread.SetApartmentState(<span style="color:#2b91af">ApartmentState</span>.STA);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">return</span>&nbsp;thread;
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}).ToList();
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:green">//&nbsp;Start&nbsp;all&nbsp;of&nbsp;the&nbsp;threads</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_threads.ForEach(t&nbsp;=&gt;&nbsp;t.Start());
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:gray">///</span><span style="color:green">&nbsp;</span><span style="color:gray">&lt;summary&gt;</span><span style="color:green">Queues&nbsp;a&nbsp;Task&nbsp;to&nbsp;be&nbsp;executed&nbsp;by&nbsp;this&nbsp;scheduler.</span><span style="color:gray">&lt;/summary&gt;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:gray">///</span><span style="color:green">&nbsp;</span><span style="color:gray">&lt;param&nbsp;name=</span><span style="color:gray">&quot;task&quot;</span><span style="color:gray">&gt;</span><span style="color:green">The&nbsp;task&nbsp;to&nbsp;be&nbsp;executed.</span><span style="color:gray">&lt;/param&gt;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">protected</span>&nbsp;<span style="color:blue">override</span>&nbsp;<span style="color:blue">void</span>&nbsp;QueueTask(<span style="color:#2b91af">Task</span>&nbsp;task)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:green">//&nbsp;Push&nbsp;it&nbsp;into&nbsp;the&nbsp;blocking&nbsp;collection&nbsp;of&nbsp;tasks</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_tasks.Add(task);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:gray">///</span><span style="color:green">&nbsp;</span><span style="color:gray">&lt;summary&gt;</span><span style="color:green">Provides&nbsp;a&nbsp;list&nbsp;of&nbsp;the&nbsp;scheduled&nbsp;tasks&nbsp;for&nbsp;the&nbsp;debugger&nbsp;to&nbsp;consume.</span><span style="color:gray">&lt;/summary&gt;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:gray">///</span><span style="color:green">&nbsp;</span><span style="color:gray">&lt;returns&gt;</span><span style="color:green">An&nbsp;enumerable&nbsp;of&nbsp;all&nbsp;tasks&nbsp;currently&nbsp;scheduled.</span><span style="color:gray">&lt;/returns&gt;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">protected</span>&nbsp;<span style="color:blue">override</span>&nbsp;<span style="color:#2b91af">IEnumerable</span>&lt;<span style="color:#2b91af">Task</span>&gt;&nbsp;GetScheduledTasks()
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:green">//&nbsp;Serialize&nbsp;the&nbsp;contents&nbsp;of&nbsp;the&nbsp;blocking&nbsp;collection&nbsp;of&nbsp;tasks&nbsp;for&nbsp;the&nbsp;debugger</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">return</span>&nbsp;_tasks.ToArray();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:gray">///</span><span style="color:green">&nbsp;</span><span style="color:gray">&lt;summary&gt;</span><span style="color:green">Determines&nbsp;whether&nbsp;a&nbsp;Task&nbsp;may&nbsp;be&nbsp;inlined.</span><span style="color:gray">&lt;/summary&gt;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:gray">///</span><span style="color:green">&nbsp;</span><span style="color:gray">&lt;param&nbsp;name=</span><span style="color:gray">&quot;task&quot;</span><span style="color:gray">&gt;</span><span style="color:green">The&nbsp;task&nbsp;to&nbsp;be&nbsp;executed.</span><span style="color:gray">&lt;/param&gt;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:gray">///</span><span style="color:green">&nbsp;</span><span style="color:gray">&lt;param&nbsp;name=</span><span style="color:gray">&quot;taskWasPreviouslyQueued&quot;</span><span style="color:gray">&gt;</span><span style="color:green">Whether&nbsp;the&nbsp;task&nbsp;was&nbsp;previously&nbsp;queued.</span><span style="color:gray">&lt;/param&gt;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:gray">///</span><span style="color:green">&nbsp;</span><span style="color:gray">&lt;returns&gt;</span><span style="color:green">true&nbsp;if&nbsp;the&nbsp;task&nbsp;was&nbsp;successfully&nbsp;inlined;&nbsp;otherwise,&nbsp;false.</span><span style="color:gray">&lt;/returns&gt;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">protected</span>&nbsp;<span style="color:blue">override</span>&nbsp;<span style="color:blue">bool</span>&nbsp;TryExecuteTaskInline(<span style="color:#2b91af">Task</span>&nbsp;task,&nbsp;<span style="color:blue">bool</span>&nbsp;taskWasPreviouslyQueued)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:green">//&nbsp;Try&nbsp;to&nbsp;inline&nbsp;if&nbsp;the&nbsp;current&nbsp;thread&nbsp;is&nbsp;STA</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">return</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#2b91af">Thread</span>.CurrentThread.GetApartmentState()&nbsp;==&nbsp;<span style="color:#2b91af">ApartmentState</span>.STA&nbsp;&amp;&amp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TryExecuteTask(task);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:gray">///</span><span style="color:green">&nbsp;</span><span style="color:gray">&lt;summary&gt;</span><span style="color:green">Gets&nbsp;the&nbsp;maximum&nbsp;concurrency&nbsp;level&nbsp;supported&nbsp;by&nbsp;this&nbsp;scheduler.</span><span style="color:gray">&lt;/summary&gt;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">public</span>&nbsp;<span style="color:blue">override</span>&nbsp;<span style="color:blue">int</span>&nbsp;MaximumConcurrencyLevel
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">get</span>&nbsp;{&nbsp;<span style="color:blue">return</span>&nbsp;_threads.Count;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:gray">///</span><span style="color:green">&nbsp;</span><span style="color:gray">&lt;summary&gt;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:gray">///</span><span style="color:green">&nbsp;Cleans&nbsp;up&nbsp;the&nbsp;scheduler&nbsp;by&nbsp;indicating&nbsp;that&nbsp;no&nbsp;more&nbsp;tasks&nbsp;will&nbsp;be&nbsp;queued.</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:gray">///</span><span style="color:green">&nbsp;This&nbsp;method&nbsp;blocks&nbsp;until&nbsp;all&nbsp;threads&nbsp;successfully&nbsp;shutdown.</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:gray">///</span><span style="color:green">&nbsp;</span><span style="color:gray">&lt;/summary&gt;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">public</span>&nbsp;<span style="color:blue">void</span>&nbsp;Dispose()
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">if</span>&nbsp;(_tasks&nbsp;!=&nbsp;<span style="color:blue">null</span>)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:green">//&nbsp;Indicate&nbsp;that&nbsp;no&nbsp;new&nbsp;tasks&nbsp;will&nbsp;be&nbsp;coming&nbsp;in</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_tasks.CompleteAdding();
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:green">//&nbsp;Wait&nbsp;for&nbsp;all&nbsp;threads&nbsp;to&nbsp;finish&nbsp;processing&nbsp;tasks</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">foreach</span>&nbsp;(<span style="color:blue">var</span>&nbsp;thread&nbsp;<span style="color:blue">in</span>&nbsp;_threads)&nbsp;thread.Join();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:green">//&nbsp;Cleanup</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_tasks.Dispose();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_tasks&nbsp;=&nbsp;<span style="color:blue">null</span>;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;}</pre>
+<p><br>
+Now, let's keep an instance of one of these in our ESAPI class.</p>
+<pre style="font-size:13px; font-family:Consolas; background:white; color:black">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">public</span>&nbsp;<span style="color:blue">class</span>&nbsp;<span style="color:#2b91af">ESAPI</span>
+&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">static</span>&nbsp;VMS.TPS.Common.Model.API.<span style="color:#2b91af">Application</span>&nbsp;_app;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">private</span>&nbsp;<span style="color:#2b91af">StaTaskScheduler</span>&nbsp;_ts;
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">public</span>&nbsp;ESAPI()
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_ts&nbsp;=&nbsp;<span style="color:blue">new</span>&nbsp;<span style="color:#2b91af">StaTaskScheduler</span>(1);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">public</span>&nbsp;VMS.TPS.Common.Model.API.<span style="color:#2b91af">Application</span>&nbsp;App
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">get</span>&nbsp;{&nbsp;<span style="color:blue">return</span>&nbsp;_app;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;}</pre>
+<p>Finally, we can add two new methods that will allow us to do anything to the application class:<br>
+<br>
+</p>
+<pre style="font-size:13px; font-family:Consolas; background:white; color:black">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">public</span>&nbsp;<span style="color:blue">async</span>&nbsp;<span style="color:#2b91af">Task</span>&lt;<span style="color:blue">bool</span>&gt;&nbsp;Login(<span style="color:blue">string</span>&nbsp;username,&nbsp;<span style="color:blue">string</span>&nbsp;password)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">var</span>&nbsp;task&nbsp;=&nbsp;<span style="color:#2b91af">Task</span>.Factory.StartNew&lt;<span style="color:#2b91af">Application</span>&gt;(()&nbsp;=&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_app&nbsp;=&nbsp;<span style="color:#2b91af">Application</span>.CreateApplication(username,&nbsp;password);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">return</span>&nbsp;_app;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},&nbsp;CancellationToken.None,&nbsp;<span style="color:#2b91af">TaskCreationOptions</span>.None,&nbsp;_ts);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_app&nbsp;=&nbsp;<span style="color:blue">await</span>&nbsp;task;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">return</span>&nbsp;_app&nbsp;!=&nbsp;<span style="color:blue">null</span>;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">public</span>&nbsp;<span style="color:blue">async</span>&nbsp;<span style="color:#2b91af">Task</span>&lt;T&gt;&nbsp;DoAction&lt;T&gt;(<span style="color:#2b91af">Func</span>&lt;<span style="color:#2b91af">Application</span>,&nbsp;T&gt;&nbsp;func)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">var</span>&nbsp;task&nbsp;=&nbsp;<span style="color:#2b91af">Task</span>.Factory.StartNew&lt;T&gt;(()&nbsp;=&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">return</span>&nbsp;func.Invoke(_app);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},&nbsp;CancellationToken.None,&nbsp;<span style="color:#2b91af">TaskCreationOptions</span>.None,&nbsp;_ts);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">return</span>&nbsp;<span style="color:blue">await</span>&nbsp;task;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</pre>
+<h3>Final ESAPI Class</h3>
+<p>Your final class should look like:</p>
+<pre style="font-size:13px; font-family:Consolas; background:white; color:black">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">public</span>&nbsp;<span style="color:blue">class</span>&nbsp;<span style="color:#2b91af">ESAPI</span>
+&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">static</span>&nbsp;VMS.TPS.Common.Model.API.<span style="color:#2b91af">Application</span>&nbsp;_app;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">private</span>&nbsp;<span style="color:#2b91af">StaTaskScheduler</span>&nbsp;_ts;
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">public</span>&nbsp;ESAPI()
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_ts&nbsp;=&nbsp;<span style="color:blue">new</span>&nbsp;<span style="color:#2b91af">StaTaskScheduler</span>(1);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">public</span>&nbsp;VMS.TPS.Common.Model.API.<span style="color:#2b91af">Application</span>&nbsp;App
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">get</span>&nbsp;{&nbsp;<span style="color:blue">return</span>&nbsp;_app;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">public</span>&nbsp;<span style="color:blue">async</span>&nbsp;<span style="color:#2b91af">Task</span>&lt;<span style="color:blue">bool</span>&gt;&nbsp;Login(<span style="color:blue">string</span>&nbsp;username,&nbsp;<span style="color:blue">string</span>&nbsp;password)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">var</span>&nbsp;task&nbsp;=&nbsp;<span style="color:#2b91af">Task</span>.Factory.StartNew&lt;<span style="color:#2b91af">Application</span>&gt;(()&nbsp;=&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_app&nbsp;=&nbsp;<span style="color:#2b91af">Application</span>.CreateApplication(username,&nbsp;password);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">return</span>&nbsp;_app;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},&nbsp;CancellationToken.None,&nbsp;<span style="color:#2b91af">TaskCreationOptions</span>.None,&nbsp;_ts);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_app&nbsp;=&nbsp;<span style="color:blue">await</span>&nbsp;task;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">return</span>&nbsp;_app&nbsp;!=&nbsp;<span style="color:blue">null</span>;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">public</span>&nbsp;<span style="color:blue">async</span>&nbsp;<span style="color:#2b91af">Task</span>&lt;T&gt;&nbsp;DoAction&lt;T&gt;(<span style="color:#2b91af">Func</span>&lt;<span style="color:#2b91af">Application</span>,&nbsp;T&gt;&nbsp;func)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">var</span>&nbsp;task&nbsp;=&nbsp;<span style="color:#2b91af">Task</span>.Factory.StartNew&lt;T&gt;(()&nbsp;=&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">return</span>&nbsp;func.Invoke(_app);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},&nbsp;CancellationToken.None,&nbsp;<span style="color:#2b91af">TaskCreationOptions</span>.None,&nbsp;_ts);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">return</span>&nbsp;<span style="color:blue">await</span>&nbsp;task;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;}</pre>
+<h3>Calling From Application</h3>
+<p>And here is how you call it from you application:</p>
+<pre style="font-size:13px; font-family:Consolas; background:white; color:black">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">if</span>&nbsp;(<span style="color:blue">await</span>&nbsp;_esapi.Login(Username,&nbsp;Password))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#2b91af">Console</span>.Write(<span style="color:#a31515">&quot;Login&nbsp;Success!&quot;</span>);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">else</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Error&nbsp;=&nbsp;<span style="color:#a31515">&quot;Username&nbsp;or&nbsp;password&nbsp;not&nbsp;correct&quot;</span>;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RaisePropertyChanged(()&nbsp;=&gt;&nbsp;Error);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IsWorking&nbsp;=&nbsp;<span style="color:blue">false</span>;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RaisePropertyChanged(()&nbsp;=&gt;&nbsp;IsWorking);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</pre>
+<p>Or</p>
+<pre style="font-size:13px; font-family:Consolas; background:white; color:black">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">var</span>&nbsp;name&nbsp;=&nbsp;<span style="color:blue">await</span>&nbsp;_esapi.DoAction&lt;<span style="color:blue">string</span>&gt;((app)&nbsp;=&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">var</span>&nbsp;pat&nbsp;=&nbsp;app.OpenPatientById(<span style="color:#a31515">&quot;123456&quot;</span>);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:blue">return</span>&nbsp;pat.FirstName;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Name&nbsp;=&nbsp;name;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RaisePropertyChanged(()&nbsp;=&gt;&nbsp;Name);</pre>
+<p>Hopefully, this will get you started in creating a smooth asynchronous calling experience between your app and the underlying API.</p>
+</div><div class="ClearBoth"></div>

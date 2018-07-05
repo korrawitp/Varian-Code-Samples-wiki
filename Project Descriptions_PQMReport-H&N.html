@@ -1,0 +1,814 @@
+﻿<html>
+  <head>
+    <META http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <style type="text/css">
+        body {
+        margin-left: 5%;
+        margin-right: 5%;
+        font-family: sans-serif;}
+        h1 { margin-left: -3%;}
+        h2,h3,h4,h5,h6 { margin-left: -2%; }
+
+
+        div.reportMeta {
+        background-color: rgb(164,164,164);
+        padding: 0.5em;
+        border: none;
+        width: 100%;
+        }
+
+        div.planInfo {
+        margin-top: 1em;
+        padding-top: 1em;
+        border-top: thin dotted }
+
+        div.structureInfo {
+        margin-top: 1em;
+        padding-top: 1em;
+        border-top: thin dotted }
+
+        #planInfoTable
+        {
+        font-family:"Trebuchet MS", Arial, Helvetica, sans-serif;
+        width:100%;
+        border-collapse:collapse;
+        }
+        #planInfoTable td, #planInfoTable th
+        {
+        font-size:1em;
+        border:1px solid #98bf21;
+        padding:3px 7px 2px 7px;
+        }
+        #planInfoTable tr.alt td
+        {
+        color:#000000;
+        background-color:#EAF2D3;
+        }
+        #planInfoTable th
+        {
+        text-align:left;
+        }
+
+        #beamsTable
+        {
+        font-family:"Trebuchet MS", Arial, Helvetica, sans-serif;
+        width:100%;
+        border:1.5px solid #98bf21;
+        border-collapse:collapse;
+        }
+        #beamsTable td, #beamsTable th
+        {
+        font-size:1em;
+        border:1px solid #98bf21;
+        padding:3px 7px 2px 7px;
+        }
+        #beamsTable tr.alt td
+        {
+        color:#000000;
+        background-color:#EAF2D3;
+        }
+        #beamsTable th
+        {
+        text-align:center;
+        }
+
+        #pqmTable
+        {
+        font-family:"Trebuchet MS", Arial, Helvetica, sans-serif;
+        border:1.5px solid blue;
+        border-collapse:collapse;
+        }
+        #pqmTable td, #pqmTable th
+        {
+        font-size:1em;
+        border:1px solid blue;
+        padding:3px 7px 2px 7px;
+        }
+        #pqmTable tr.alt td
+        {
+        color:#000000;
+        background-color:#EAF2D3;
+        }
+        #pqmTable th
+        {
+        text-align:center;
+        }
+        #pqmTable td.WARN
+        {
+        background-color:yellow;
+        }
+        #pqmTable td.FAIL
+        {
+        background-color:red;
+        }
+
+        h3.target
+        {
+        background-color:light-green;
+        }
+        p.warning
+        {
+        color:orange;
+        }
+        p.error
+        {
+        color:red;
+        }
+      </style>
+  </head>
+  <body><header><hgroup><h1>Plan Quality Report</h1>
+        <h2>HN01,  (HN01)</h2></hgroup></header><div class="reportMeta">
+      <p>
+Author : varianuser6<br>
+Date : 2/28/2014 11:30:00 PM<br>
+Eclipse Version : 13.0.28.0<br>
+Script Version : 1.0.10<br></p>
+    </div>
+    <div class="planInfo">
+      <h3>
+Plan : H&amp;N</h3>
+      <table id="planInfoTable">
+        <tr>
+          <th># beams</th>
+          <td>2</td>
+        </tr>
+        <tr>
+          <th># Fx</th>
+          <td>35</td>
+        </tr>
+        <tr>
+          <th>Total Prescribed Dose</th>
+          <td>70 Gy</td>
+        </tr>
+        <tr>
+          <th>Prescribed Dose / Fx</th>
+          <td>2 Gy</td>
+        </tr>
+        <tr>
+          <th>Planned Dose / Fx</th>
+          <td>2 Gy</td>
+        </tr>
+        <tr>
+          <th>Plan Normalization Method</th>
+          <td>Plan Normalization Value: 100.00</td>
+        </tr>
+        <tr>
+          <th>Plan Normalization Value</th>
+          <td>100</td>
+        </tr>
+        <tr>
+          <th>Treatment Orientation</th>
+          <td>HeadFirstSupine</td>
+        </tr>
+        <tr>
+          <th>Target</th>
+          <td>PTV70</td>
+        </tr>
+      </table>
+      <p>
+      Beams:<br><br></p>
+      <table id="beamsTable" border="1">
+        <tr>
+          <th>#</th>
+          <th>ARC2-CCW</th>
+          <th>ARC1-CW</th>
+        </tr>
+        <tr>
+          <th>Beam Type</th>
+          <td>Treatment</td>
+          <td>Treatment</td>
+        </tr>
+        <tr>
+          <th>Technique</th>
+          <td>ARC</td>
+          <td>ARC</td>
+        </tr>
+        <tr>
+          <th>Energy</th>
+          <td>6X</td>
+          <td>6X</td>
+        </tr>
+        <tr>
+          <th>Dose Rate</th>
+          <td>600</td>
+          <td>600</td>
+        </tr>
+        <tr>
+          <th>MU</th>
+          <td>NaN</td>
+          <td>NaN</td>
+        </tr>
+        <tr>
+          <th>Dose</th>
+          <td>1 Gy</td>
+          <td>1 Gy</td>
+        </tr>
+        <tr>
+          <th>Gantry Start</th>
+          <td>179</td>
+          <td>181</td>
+        </tr>
+        <tr>
+          <th>Gantry End</th>
+          <td>181</td>
+          <td>179</td>
+        </tr>
+        <tr>
+          <th>Gantry Direction</th>
+          <td>CounterClockwise</td>
+          <td>Clockwise</td>
+        </tr>
+      </table>
+    </div>
+    <div class="structureInfo">
+      <p>
+        <h2>Structure Information</h2>
+      </p>
+      <h3 class="target">
+Target Structure : PTV70</h3>
+      <p>
+Volume : 34.11 cc<br></p>
+      <table id="pqmTable" border="1">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Evaluation Point</th>
+          <th>Calculated Value</th>
+          <th>Goal</th>
+          <th>Must</th>
+          <th>Evaluation</th>
+        </tr>
+        <tr>
+          <td>V[95%(Rx) &gt; 95%]</td>
+          <td>VolumeAtDose</td>
+          <td>66.500 Gy</td>
+          <td>99.989 %</td>
+          <td>95.000 %</td>
+          <td>95.000 %</td>
+          <td class="PASS">PASS</td>
+        </tr>
+      </table>
+      <h3>
+Structure : Brain</h3>
+      <p>
+Volume : 1164.48 cc<br></p>
+      <table id="pqmTable" border="1">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Evaluation Point</th>
+          <th>Calculated Value</th>
+          <th>Goal</th>
+          <th>Must</th>
+          <th>Evaluation</th>
+        </tr>
+        <tr>
+          <td>Dmax &lt; 72.000 Gy</td>
+          <td>MaxDose</td>
+          <td> </td>
+          <td>26.219 Gy</td>
+          <td>72.000 Gy</td>
+          <td>72.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+        <tr>
+          <td>Dmax &lt; 60.000 Gy</td>
+          <td>MaxDose</td>
+          <td> </td>
+          <td>26.219 Gy</td>
+          <td>60.000 Gy</td>
+          <td>60.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+      </table>
+      <h3>
+Structure : Brainstem</h3>
+      <p>
+Volume : 21.8 cc<br></p>
+      <table id="pqmTable" border="1">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Evaluation Point</th>
+          <th>Calculated Value</th>
+          <th>Goal</th>
+          <th>Must</th>
+          <th>Evaluation</th>
+        </tr>
+        <tr>
+          <td>Dmax &lt; 64.000 Gy</td>
+          <td>MaxDose</td>
+          <td> </td>
+          <td>26.978 Gy</td>
+          <td>64.000 Gy</td>
+          <td>64.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+        <tr>
+          <td>Dmax &lt; 54.000 Gy</td>
+          <td>MaxDose</td>
+          <td> </td>
+          <td>26.978 Gy</td>
+          <td>54.000 Gy</td>
+          <td>54.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+        <tr>
+          <td>Dmax &lt; 50.000 Gy</td>
+          <td>MaxDose</td>
+          <td> </td>
+          <td>26.978 Gy</td>
+          <td>50.000 Gy</td>
+          <td>50.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+        <tr>
+          <td>V59 &lt; 1cc</td>
+          <td>VolumeAtDose</td>
+          <td>59.000 Gy</td>
+          <td>0.000 cc</td>
+          <td>1.000 cc</td>
+          <td>1.050 cc</td>
+          <td class="PASS">PASS</td>
+        </tr>
+      </table>
+      <h3>
+Structure : Lens LT</h3>
+      <p>
+Volume : 0.14 cc<br></p>
+      <table id="pqmTable" border="1">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Evaluation Point</th>
+          <th>Calculated Value</th>
+          <th>Goal</th>
+          <th>Must</th>
+          <th>Evaluation</th>
+        </tr>
+        <tr>
+          <td>Dmean &lt; 10.000 Gy</td>
+          <td>MeanDose</td>
+          <td> </td>
+          <td>1.901 Gy</td>
+          <td>10.000 Gy</td>
+          <td>10.500 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+      </table>
+      <h3>
+Structure : Lens RT</h3>
+      <p>
+Volume : 0.13 cc<br></p>
+      <table id="pqmTable" border="1">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Evaluation Point</th>
+          <th>Calculated Value</th>
+          <th>Goal</th>
+          <th>Must</th>
+          <th>Evaluation</th>
+        </tr>
+        <tr>
+          <td>Dmean &lt; 10.000 Gy</td>
+          <td>MeanDose</td>
+          <td> </td>
+          <td>1.774 Gy</td>
+          <td>10.000 Gy</td>
+          <td>10.500 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+      </table>
+      <h3>
+Structure : Orbit LT</h3>
+      <p>
+Volume : 5.85 cc<br></p>
+      <table id="pqmTable" border="1">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Evaluation Point</th>
+          <th>Calculated Value</th>
+          <th>Goal</th>
+          <th>Must</th>
+          <th>Evaluation</th>
+        </tr>
+        <tr>
+          <td>Dmean &lt; 45.000 Gy</td>
+          <td>MeanDose</td>
+          <td> </td>
+          <td>1.904 Gy</td>
+          <td>45.000 Gy</td>
+          <td>47.250 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+      </table>
+      <h3>
+Structure : Orbit RT</h3>
+      <p>
+Volume : 5.92 cc<br></p>
+      <table id="pqmTable" border="1">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Evaluation Point</th>
+          <th>Calculated Value</th>
+          <th>Goal</th>
+          <th>Must</th>
+          <th>Evaluation</th>
+        </tr>
+        <tr>
+          <td>Dmean &lt; 45.000 Gy</td>
+          <td>MeanDose</td>
+          <td> </td>
+          <td>1.816 Gy</td>
+          <td>45.000 Gy</td>
+          <td>47.250 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+      </table>
+      <h3>
+Structure : Optic Nerve LT</h3>
+      <p>
+Volume : 0.69 cc<br></p>
+      <table id="pqmTable" border="1">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Evaluation Point</th>
+          <th>Calculated Value</th>
+          <th>Goal</th>
+          <th>Must</th>
+          <th>Evaluation</th>
+        </tr>
+        <tr>
+          <td>Dmax &lt; 60.000 Gy</td>
+          <td>MaxDose</td>
+          <td> </td>
+          <td>3.188 Gy</td>
+          <td>60.000 Gy</td>
+          <td>60.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+        <tr>
+          <td>Dmax &lt; 55.000 Gy</td>
+          <td>MaxDose</td>
+          <td> </td>
+          <td>3.188 Gy</td>
+          <td>55.000 Gy</td>
+          <td>55.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+        <tr>
+          <td>Dmax &lt; 50.000 Gy</td>
+          <td>MaxDose</td>
+          <td> </td>
+          <td>3.188 Gy</td>
+          <td>50.000 Gy</td>
+          <td>50.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+      </table>
+      <h3>
+Structure : Optic Nerve RT</h3>
+      <p>
+Volume : 0.61 cc<br></p>
+      <table id="pqmTable" border="1">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Evaluation Point</th>
+          <th>Calculated Value</th>
+          <th>Goal</th>
+          <th>Must</th>
+          <th>Evaluation</th>
+        </tr>
+        <tr>
+          <td>Dmax &lt; 60.000 Gy</td>
+          <td>MaxDose</td>
+          <td> </td>
+          <td>2.931 Gy</td>
+          <td>60.000 Gy</td>
+          <td>60.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+        <tr>
+          <td>Dmax &lt; 55.000 Gy</td>
+          <td>MaxDose</td>
+          <td> </td>
+          <td>2.931 Gy</td>
+          <td>55.000 Gy</td>
+          <td>55.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+        <tr>
+          <td>Dmax &lt; 50.000 Gy</td>
+          <td>MaxDose</td>
+          <td> </td>
+          <td>2.931 Gy</td>
+          <td>50.000 Gy</td>
+          <td>50.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+      </table>
+      <h3>
+Structure : Optic Chiasm</h3>
+      <p>
+Volume : 0.9 cc<br></p>
+      <table id="pqmTable" border="1">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Evaluation Point</th>
+          <th>Calculated Value</th>
+          <th>Goal</th>
+          <th>Must</th>
+          <th>Evaluation</th>
+        </tr>
+        <tr>
+          <td>Dmax &lt; 60.000 Gy</td>
+          <td>MaxDose</td>
+          <td> </td>
+          <td>3.171 Gy</td>
+          <td>60.000 Gy</td>
+          <td>60.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+        <tr>
+          <td>Dmax &lt; 55.000 Gy</td>
+          <td>MaxDose</td>
+          <td> </td>
+          <td>3.171 Gy</td>
+          <td>55.000 Gy</td>
+          <td>55.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+        <tr>
+          <td>Dmax &lt; 50.000 Gy</td>
+          <td>MaxDose</td>
+          <td> </td>
+          <td>3.171 Gy</td>
+          <td>50.000 Gy</td>
+          <td>50.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+      </table>
+      <h3>
+Structure : Glottic Larynx</h3>
+      <p>
+Volume : 17.91 cc<br></p>
+      <table id="pqmTable" border="1">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Evaluation Point</th>
+          <th>Calculated Value</th>
+          <th>Goal</th>
+          <th>Must</th>
+          <th>Evaluation</th>
+        </tr>
+        <tr>
+          <td>Dmean &lt; 44.000 Gy</td>
+          <td>MeanDose</td>
+          <td> </td>
+          <td>28.367 Gy</td>
+          <td>44.000 Gy</td>
+          <td>46.200 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+      </table>
+      <h3>
+Structure : Parotid LT</h3>
+      <p>
+Volume : 28.58 cc<br></p>
+      <table id="pqmTable" border="1">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Evaluation Point</th>
+          <th>Calculated Value</th>
+          <th>Goal</th>
+          <th>Must</th>
+          <th>Evaluation</th>
+        </tr>
+        <tr>
+          <td>Dmean &lt; 10.000 Gy</td>
+          <td>MeanDose</td>
+          <td> </td>
+          <td>32.720 Gy</td>
+          <td>10.000 Gy</td>
+          <td>10.500 Gy</td>
+          <td class="FAIL">FAIL</td>
+        </tr>
+        <tr>
+          <td>Dmean &lt; 20.000 Gy</td>
+          <td>MeanDose</td>
+          <td> </td>
+          <td>32.720 Gy</td>
+          <td>20.000 Gy</td>
+          <td>21.000 Gy</td>
+          <td class="FAIL">FAIL</td>
+        </tr>
+      </table>
+      <h3>
+Structure : Parotid RT</h3>
+      <p>
+Volume : 29.18 cc<br></p>
+      <table id="pqmTable" border="1">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Evaluation Point</th>
+          <th>Calculated Value</th>
+          <th>Goal</th>
+          <th>Must</th>
+          <th>Evaluation</th>
+        </tr>
+        <tr>
+          <td>Dmean &lt; 10.000 Gy</td>
+          <td>MeanDose</td>
+          <td> </td>
+          <td>25.748 Gy</td>
+          <td>10.000 Gy</td>
+          <td>10.500 Gy</td>
+          <td class="FAIL">FAIL</td>
+        </tr>
+        <tr>
+          <td>Dmean &lt; 20.000 Gy</td>
+          <td>MeanDose</td>
+          <td> </td>
+          <td>25.748 Gy</td>
+          <td>20.000 Gy</td>
+          <td>21.000 Gy</td>
+          <td class="FAIL">FAIL</td>
+        </tr>
+      </table>
+      <h3>
+Structure : Parotid Combined</h3>
+      <p>
+Volume : 57.66 cc<br></p>
+      <table id="pqmTable" border="1">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Evaluation Point</th>
+          <th>Calculated Value</th>
+          <th>Goal</th>
+          <th>Must</th>
+          <th>Evaluation</th>
+        </tr>
+        <tr>
+          <td>Dmean &lt; 10.000 Gy</td>
+          <td>MeanDose</td>
+          <td> </td>
+          <td>29.187 Gy</td>
+          <td>10.000 Gy</td>
+          <td>10.500 Gy</td>
+          <td class="FAIL">FAIL</td>
+        </tr>
+        <tr>
+          <td>Dmean &lt; 25.000 Gy</td>
+          <td>MeanDose</td>
+          <td> </td>
+          <td>29.187 Gy</td>
+          <td>25.000 Gy</td>
+          <td>26.250 Gy</td>
+          <td class="FAIL">FAIL</td>
+        </tr>
+        <tr>
+          <td>Dmean &lt; 40.000 Gy</td>
+          <td>MeanDose</td>
+          <td> </td>
+          <td>29.187 Gy</td>
+          <td>40.000 Gy</td>
+          <td>42.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+      </table>
+      <h3>
+Structure : Cord</h3>
+      <p>
+Volume : 17.7 cc<br></p>
+      <table id="pqmTable" border="1">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Evaluation Point</th>
+          <th>Calculated Value</th>
+          <th>Goal</th>
+          <th>Must</th>
+          <th>Evaluation</th>
+        </tr>
+        <tr>
+          <td>Dmax &lt; 60.000 Gy</td>
+          <td>MaxDose</td>
+          <td> </td>
+          <td>43.892 Gy</td>
+          <td>60.000 Gy</td>
+          <td>60.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+        <tr>
+          <td>Dmax &lt; 50.000 Gy</td>
+          <td>MaxDose</td>
+          <td> </td>
+          <td>43.892 Gy</td>
+          <td>50.000 Gy</td>
+          <td>50.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+      </table>
+      <h3>
+Structure : Mandible</h3>
+      <p>
+Volume : 69.9 cc<br></p>
+      <table id="pqmTable" border="1">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Evaluation Point</th>
+          <th>Calculated Value</th>
+          <th>Goal</th>
+          <th>Must</th>
+          <th>Evaluation</th>
+        </tr>
+        <tr>
+          <td>Dmax &lt; 70.000 Gy</td>
+          <td>MaxDose</td>
+          <td> </td>
+          <td>69.059 Gy</td>
+          <td>70.000 Gy</td>
+          <td>70.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+      </table>
+      <h3>
+Structure : Oral Cavity</h3>
+      <p>
+Volume : 115.02 cc<br></p>
+      <table id="pqmTable" border="1">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Evaluation Point</th>
+          <th>Calculated Value</th>
+          <th>Goal</th>
+          <th>Must</th>
+          <th>Evaluation</th>
+        </tr>
+        <tr>
+          <td>Dmax &lt; 40.000 Gy</td>
+          <td>MaxDose</td>
+          <td> </td>
+          <td>73.809 Gy</td>
+          <td>40.000 Gy</td>
+          <td>40.000 Gy</td>
+          <td class="FAIL">FAIL</td>
+        </tr>
+        <tr>
+          <td>Dmean &lt; 40.000 Gy</td>
+          <td>MeanDose</td>
+          <td> </td>
+          <td>39.890 Gy</td>
+          <td>40.000 Gy</td>
+          <td>42.000 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+      </table>
+      <h3>
+Structure : Pharyngeal Con</h3>
+      <p>
+Volume : 12.45 cc<br></p>
+      <table id="pqmTable" border="1">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Evaluation Point</th>
+          <th>Calculated Value</th>
+          <th>Goal</th>
+          <th>Must</th>
+          <th>Evaluation</th>
+        </tr>
+        <tr>
+          <td>Naso and Sinus Cases</td>
+          <td>MeanDose</td>
+          <td> </td>
+          <td>45.096 Gy</td>
+          <td>50.000 Gy</td>
+          <td>52.500 Gy</td>
+          <td class="PASS">PASS</td>
+        </tr>
+        <tr>
+          <td>Post op</td>
+          <td>MeanDose</td>
+          <td> </td>
+          <td>45.096 Gy</td>
+          <td>45.000 Gy</td>
+          <td>47.250 Gy</td>
+          <td class="WARN">WARN</td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

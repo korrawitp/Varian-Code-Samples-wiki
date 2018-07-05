@@ -1,0 +1,48 @@
+<div class="wikidoc">
+<h1>Radiobiological Effect report and Aria Document post</h1>
+<p>Author: Seppo Tuomaala</p>
+<p><em>Disclaimer:&nbsp; I&rsquo;m an employee of Varian Medical Systems. The views in this post are my own, and do not necessarily represent the views of Varian.
+</em></p>
+<h2>Introduction</h2>
+<p>With Eclipse scripting, you can create plan reports which include information that is not available within the standard Eclipse print templates. This article describes how to create a custom Radiobiological Effect report script, and how to export the report
+ to PDF format, and post it into the Aria Documents.</p>
+<p><img src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=904979" alt="" width="624" height="369"></p>
+<p>See the whole source code for this project in the branch RBEReport.</p>
+<p>The project uses open source library PDFSharp/MigraDoc (<a href="http://www.pdfsharp.net/">www.pdfsharp.net</a>) to create the PDF document.</p>
+<p>The report is created based on a Plan Setup or a Plan Sum. There is a table Plan Summary that lists the contained plans and the a/b values and the calculated EQD2 dose. Under the table there are a summed total of EQD2 doses and more details of each plan.</p>
+<p>The UI has a minimal amount of user interaction (a/b value can be modified in the Plan Summary table). The UI is a XAML user control. If there was no interaction, it might have been enough to skip the XAML development and just create a PDF document and show
+ it with a PDF viewer.</p>
+<h2>The structure of the code</h2>
+<p>The project was developed with plugin-tester in mind (see project PlugIn-tester), so the file RBEReport.cs contains both Execute() and Start() &ndash;functions. When the plug-in script is run from Eclipse, it starts Execute(). When run from the plugin-tester,
+ Start() is the starting point.</p>
+<h3>MVVM</h3>
+<p>The code is structured to loosely follow the MVVM (Model-View-ViewModel) paradigm. In the code-behind file UserControl1.xaml.cs there is minimal amount of business logic. It&rsquo;s mainly in the RBEViewModel.cs.</p>
+<p><img src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=904980" alt="Figure 2" width="387" height="99"></p>
+<p>This is the beginning of Start()-function in RBEReport.cs. The UserControl1 constructor creates also the view model &lsquo;VM&rsquo;, where you then can fill in the patient details.</p>
+<p>Then VM.AddPlanningItem() is called for the plan setup (or each plan of the plan sum).</p>
+<h2>The ViewModel</h2>
+<p>The RBEViewModel class is inherited from INotifyPropertyChanged to enable binding to the UI fields, defined in XAML.</p>
+<p>The VM has the patient detail properties as string property members.</p>
+<p>The Grid property, of type DataGrid, is the class that handles the binding of the Plan Summary table in the UI. Each row of the table is bound to an instance of class Columns.</p>
+<p>The plan details of each plan are maintained in a member Details (which is of type System.Windows.Controls.ListBox). Each item in the list box is bound to an instance of class PlanDetails.</p>
+<p>And there&rsquo;s a third property, Plans, which maps each plan to the user-definable a/b ratio value.</p>
+<p>In Grid_CellEditEnding() user inputs are handled. The Plans map is updated with the modified a/b value. Also the TotalEQD2Dose is updated, and the Details is updated.</p>
+<p>Note: There are a lot of duplicates between Grid members and Details members. Probably these two classes could have been combined. Now they are separate, and one&rsquo;s members map directly to the table, and the other&rsquo;s to the plan details.</p>
+<h2>PDF creation</h2>
+<p>The PDF document is created in RBEViewModel.ExportToPDF().</p>
+<p>The SharpPDF library has primitives for PDF creation, like lines, text rendering etc. In this project we use MigraDoc, which contains a Document Description Language. It has support for text layout, tables etc.</p>
+<p>The function ExportToPDF in RBEViewModel.cs first creates a MigraDoc.DocumentObjectModel.Document. Then the needed paragraphs and tables are added to it. In the end the document is rendered into a PDF and written to disk.</p>
+<p>The document is laid out to look similar to the XAML-based UI.</p>
+<h2>Aria Post</h2>
+<p>PostToAria.cs has the code that uses the Aria Web Services to post a document to the database. The document service needs to be installed for this to work (please contact your Varian service).</p>
+<p>The code fills in minimal amount of information in the document parameters. All the parameters that are viewed in the Documents workspace can be filled. (Right click on the class name &quot;InsertDocumentParameters&quot; and select Go To Definition to see all the
+ parameters.)</p>
+<p>Note: fill in your correct service URL, user and password for the SQL database at the top of the file.</p>
+<p>You will find detailed documentation of the Aria Document web service at MyVarian.com:</p>
+<ul>
+<li><span style="font-size:7pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>
+100061926 Varian Aria Document Service Installation Instructions and Configuration Guide
+</li><li><span style="font-size:7pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>
+100061927 Document Service User Guide </li></ul>
+<p>&nbsp;</p>
+</div><div class="ClearBoth"></div>

@@ -1,0 +1,61 @@
+<div class="wikidoc">
+<h1>Using a Singleton Pattern with Eclipse Scripting API</h1>
+<p>When writing an app with a UI component, you can be switching through windows or form controls and each of those might need access to the application context (where all the data is located). How do you accomplish this?</p>
+<p>One way is to set up some kind of routing system where one window passes the context to the next and so on. This gets tedious and is difficult with larger apps. I have found that it is often helpful to have a separate class that controls access to the application
+ context.</p>
+<h2>A Simple Singleton Class</h2>
+<div class="csharpcode">
+<pre class="alt"><span class="kwrd">using</span> System;</pre>
+<pre><span class="kwrd">using</span> System.Collections.Generic;</pre>
+<pre class="alt"><span class="kwrd">using</span> System.Linq;</pre>
+<pre><span class="kwrd">using</span> System.Text;</pre>
+<pre class="alt"><span class="kwrd">using</span> System.Threading.Tasks;</pre>
+<pre><span class="kwrd">using</span> VMS.TPS.Common.Model.API;</pre>
+<pre class="alt">&nbsp;</pre>
+<pre><span class="kwrd">namespace</span> Cardan.ESAPI</pre>
+<pre class="alt">{</pre>
+<pre>    <span class="kwrd">public</span> <span class="kwrd">class</span> ESAPIApplication</pre>
+<pre class="alt">    {</pre>
+<pre>        <span class="kwrd">private</span> <span class="kwrd">static</span> <span class="kwrd">readonly</span> Lazy&lt;ESAPIApplication&gt; _instance = <span class="kwrd">new</span> Lazy&lt;ESAPIApplication&gt;(() =&gt; <span class="kwrd">new</span> ESAPIApplication());</pre>
+<pre class="alt">&nbsp;</pre>
+<pre>        <span class="rem">// private to prevent direct instantiation.</span></pre>
+<pre class="alt">        <span class="kwrd">private</span> ESAPIApplication()</pre>
+<pre>        {</pre>
+<pre class="alt">            Context = Application.CreateApplication(<span class="kwrd">null</span>, <span class="kwrd">null</span>);</pre>
+<pre>        }</pre>
+<pre class="alt">&nbsp;</pre>
+<pre>        <span class="kwrd">public</span> Application Context { <span class="kwrd">get</span>; <span class="kwrd">private</span> <span class="kwrd">set</span>; }</pre>
+<pre class="alt">        <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">bool</span> IsLoaded { <span class="kwrd">get</span>; <span class="kwrd">set</span>; }</pre>
+<pre>&nbsp;</pre>
+<pre class="alt">        <span class="rem">// accessor for instance</span></pre>
+<pre>        <span class="kwrd">public</span> <span class="kwrd">static</span> ESAPIApplication Instance</pre>
+<pre class="alt">        {</pre>
+<pre>            <span class="kwrd">get</span></pre>
+<pre class="alt">            {<br>                IsLoaded = true;</pre>
+<pre>                <span class="kwrd">return</span> _instance.Value;</pre>
+<pre class="alt">            }</pre>
+<pre>        }</pre>
+<pre class="alt">&nbsp;</pre>
+<pre>        <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">void</span> Dispose()</pre>
+<pre class="alt">        {</pre>
+<pre>            <span class="kwrd">if</span> (IsLoaded) { Instance.Context.Dispose(); }</pre>
+<pre class="alt">        }</pre>
+<pre>    }</pre>
+<pre class="alt">}<br><br></pre>
+</div>
+<p>Then when when you need the context, you just call:</p>
+<div class="csharpcode">
+<pre class="alt">    <span class="kwrd">public</span> <span class="kwrd">partial</span> <span class="kwrd">class</span> Form1 : Form</pre>
+<pre>    {</pre>
+<pre class="alt">        VMS.TPS.Common.Model.API.Application app;</pre>
+<pre>        <span class="kwrd">public</span> Form1()</pre>
+<pre class="alt">        {</pre>
+<pre>            InitializeComponent();</pre>
+<pre class="alt"><strong style="background:yellow">            app = ESAPIApplication.Instance.Context;</strong></pre>
+<pre>        }</pre>
+<pre>    }</pre>
+</div>
+<h2>Some Notes On Use</h2>
+<p>It is lazily loaded, so it will not&nbsp;get called until you need it. Also, the first time will require authentication, unless you have input username and password on the Application.CreateApplication method. After that. it stays loaded and is always ready
+ to go. Lastly, <strong>be sure to use the Dispose method</strong> when you are through (when your app closes). Otherwise it will crash.</p>
+</div><div class="ClearBoth"></div>

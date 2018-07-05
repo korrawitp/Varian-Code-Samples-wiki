@@ -1,0 +1,132 @@
+<div class="wikidoc">
+<h1>Scripting the Varian DB Daemon with ESAPI &#43; DCMTK</h1>
+<p>Author: <a href="mailto:eclipsedeveloper@varian.com" target="_blank">Wayne Keranen</a></p>
+<em>
+<p><em>Disclaimer:&nbsp; I’m an employee of Varian Medical Systems. The views in this post are my own, and do not necessarily represent the views of Varian.
+</em></p>
+</em>
+<h2>Introduction</h2>
+<p>Varian’s DICOM connectivity solutions since version 8.9 provide access to the majority of the DICOM-RT information that is stored in the Aria database.&nbsp; This is not well known, however, given that the connectivity is explained in the code of
+<a href="http://www.varian.com/us/oncology/services_and_support/resources/dicom_statements.html" target="_blank">
+DICOM Conformance Statements</a>.&nbsp; </p>
+<p>The purpose of this post is to help researchers extract standard DICOM radiotherapy data programmatically from the Varian system.&nbsp; This article demonstrates how one can use the Eclipse Scripting API (ESAPI) together with the open-source package
+<a href="http://dicom.offis.de/dcmtk.php.en" target="_blank">DCMTK</a> to script Varian’s DB Daemon to extract an RT Plan, its associated RT Structure Set and CT Image Series, and the calculated dose for the RT Plan.&nbsp;
+</p>
+<p>The system set up to demonstrate Varian’s DICOM connectivity is shown below in Figure 1.&nbsp; The VMS DB Daemon is configured so it can be remotely controlled by the DCMTK package to send DICOM objects via C-MOVE to the VMS File Daemon.&nbsp; The VMS File
+ Daemon then dumps those objects as DICOM files to a configured Windows location.&nbsp; This demonstration would not have required the VMS File Daemon, but including it has the added bonus that it demonstrates how one could remotely control the VMS DB Daemon
+ to send DICOM objects to any DICOM system; be it an <a href="http://www.varian.com/us/oncology/imaging_solutions/oncoview/" target="_blank">
+RT PACS</a>, or other software that supports DICOM networking operations.</p>
+<p><a href="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795097"><img title="image" border="0" alt="image" src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795098" width="640" height="327" style="border-left-width:0px; border-right-width:0px; border-bottom-width:0px; padding-top:0px; padding-left:0px; display:inline; padding-right:0px; border-top-width:0px"></a></p>
+<p><em>Figure 1 : Configured DICOM System Diagram </em></p>
+<p>&nbsp;</p>
+<h2>Configuring the System</h2>
+<h3>1. Install the DB Daemon</h3>
+<p>Ask your local Varian service rep to install the Varian DICOM DB Daemon for you on a server you have access to, or the local workstation you are working on.&nbsp; The DB Daemon is normally set up on a server, but doesn’t have to be.&nbsp; The computer it
+ runs on should be a Varian client computer that is connected to the Aria database.&nbsp; Once this has been installed, you should see the menu items show below in Figure 2 available on the computer it was installed on.</p>
+<p align="left"><a href="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795099"><img title="image_thumb1" border="0" alt="image_thumb1" src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795100" width="240" height="82" style="border-left-width:0px; border-right-width:0px; border-bottom-width:0px; padding-top:0px; padding-left:0px; margin:0px; display:inline; padding-right:0px; border-top-width:0px"></a></p>
+<p align="left"><em>Figure 2: Varian DICOM Assets Installed</em></p>
+<h3>2. Install DCMTK</h3>
+<p>Download and install <a href="http://dicom.offis.de/dcmtk.php.en" target="_blank">
+DCMTK</a>.&nbsp; The install for Windows 7 seems to consist of unpacking a zip file to a directory.&nbsp; For this article DCMTK was unpacked to
+<em><strong>C:\variandeveloper\tools\dcmtk-3.6.0-win32-i386</strong></em>.</p>
+<h3>3. Configure the DB Daemon</h3>
+<p>The Varian DB Daemon must know of and trust all of the players involved in the DICOM transaction.&nbsp;&nbsp; Here we configure the AE Titles (Application Entity Titles: DICOM jargon) used in the system. These AE Titles are completely arbitrary and could
+ be any string, but they must match in the correct ways in all of the configuration here or the system will not work.&nbsp; For this article, AE Titles are configured as shown in Table 1.</p>
+<table cellspacing="0" cellpadding="2" width="400" border="0">
+<tbody>
+<tr>
+<td valign="top" width="200"><strong>Software</strong></td>
+<td valign="top" width="200"><strong>AE Title</strong></td>
+</tr>
+<tr>
+<td valign="top" width="200">DICOM DB Daemon</td>
+<td valign="top" width="200">“VMSDBD1”</td>
+</tr>
+<tr>
+<td valign="top" width="200">DCMTK</td>
+<td valign="top" width="200">“DCMTK”</td>
+</tr>
+<tr>
+<td valign="top" width="200">VMS File Daemon</td>
+<td valign="top" width="200">“VMSFD”</td>
+</tr>
+</tbody>
+</table>
+<p><em>Table 1: Configured DICOM AE Titles</em></p>
+<p>Note: This configuration was done with version 13 of the Varian DICOM Daemon Service Configuration Wizard.&nbsp; When configuring earlier versions, the dialogs may not look exactly the same.</p>
+<p>To start, click the “DB Daemon Configuration” as shown in the menu in Figure 2 above.&nbsp; The dialog shown below appears.</p>
+<p><a href="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795101"><img title="image_thumb37" border="0" alt="image_thumb37" src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795102" width="484" height="293" style="border-left-width:0px; border-right-width:0px; border-bottom-width:0px; padding-top:0px; padding-left:0px; margin:0px; display:inline; padding-right:0px; border-top-width:0px"></a></p>
+<p><em>Figure 3: DICOM DB Daemon Config Step 1</em></p>
+<p>Click the “Add New Service” button.</p>
+<p>Fill in the AE Title and Port as shown in Figure 4, then click Next.</p>
+<p><a href="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795103"><img title="image_thumb38" border="0" alt="image_thumb38" src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795104" width="484" height="293" style="border-left-width:0px; border-right-width:0px; border-bottom-width:0px; padding-top:0px; padding-left:0px; margin:0px; display:inline; padding-right:0px; border-top-width:0px"></a></p>
+<p><em>Figure 4: DICOM DB Daemon Config Step 2</em></p>
+<p>Configure as shown in Figure 5, then click next.</p>
+<p><a href="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795105"><img title="image_thumb39" border="0" alt="image_thumb39" src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795106" width="484" height="293" style="border-left-width:0px; border-right-width:0px; border-bottom-width:0px; padding-top:0px; padding-left:0px; margin:0px; display:inline; padding-right:0px; border-top-width:0px"></a></p>
+<p><em>Figure 5: DICOM DB Daemon Config Step 3</em></p>
+<p>In the screen that follows, click the Add button to add the AE title information for DCMTK as shown in Figure 6 below.&nbsp; The port is arbitrary but it needs to match throughout the system.</p>
+<p><a href="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795107"><img title="image_thumb40" border="0" alt="image_thumb40" src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795108" width="484" height="315" style="border-left-width:0px; border-right-width:0px; border-bottom-width:0px; padding-top:0px; padding-left:0px; margin:0px; display:inline; padding-right:0px; border-top-width:0px"></a></p>
+<p><em>Figure 6: DICOM DB Daemon Config Step 4</em></p>
+<p>Click the Add button again to add the AE title information for VMS File Daemon as shown in Figure 7 below.&nbsp; The port is arbitrary but it needs to match throughout the system.</p>
+<p><a href="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795109"><img title="image_thumb41" border="0" alt="image_thumb41" src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795110" width="484" height="315" style="border-left-width:0px; border-right-width:0px; border-bottom-width:0px; padding-top:0px; padding-left:0px; margin:0px; display:inline; padding-right:0px; border-top-width:0px"></a></p>
+<p><em>Figure 7: DICOM DB Daemon Config Step 5</em></p>
+<p>When done configuring AE titles (Figure 8) click Next.&nbsp; In this article, the DB Daemon, the File Daemon, and the DCMTK package are all installed on the same computer so the IP addresses are all the same.&nbsp; This is not the usual case, normally the
+ daemons are installed on a server.</p>
+<p><a href="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795111"><img title="image_thumb42" border="0" alt="image_thumb42" src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795112" width="484" height="293" style="border-left-width:0px; border-right-width:0px; border-bottom-width:0px; padding-top:0px; padding-left:0px; margin:0px; display:inline; padding-right:0px; border-top-width:0px"></a></p>
+<p><em>Figure 8: Done Configuring Trusted AE Titles</em></p>
+<p>Configure the service control aspects as you wish and click Finish. The VMS DB Daemon should start running as a service.</p>
+<p><a href="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795113"><img title="image_thumb43" border="0" alt="image_thumb43" src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795114" width="484" height="293" style="border-left-width:0px; border-right-width:0px; border-bottom-width:0px; padding-top:0px; padding-left:0px; margin:0px; display:inline; padding-right:0px; border-top-width:0px"></a></p>
+<p><em>Figure 9: Service control options</em></p>
+<h3>4. Configure the File Daemon</h3>
+<p>The Varian File Daemon must also know of and trust all of the players involved in the DICOM transaction.&nbsp; From Table 1 we will use the AE Title of “VMSFD”.</p>
+<p>To start, click the “File Daemon Configuration” as shown in the menu in Figure 2 above.&nbsp; The dialog shown in Figure 3 above appears.&nbsp; Click the “Add New Service” button, then fill in the AE Title and port as shown below in Figure 10. Both the AE
+ Title and port are arbitrary, but must match the values given in Figure 7 above, and the port must be a tcp/ip network port that’s not already in use in your system.</p>
+<p><a href="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795115"><img title="image_thumb44" border="0" alt="image_thumb44" src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795116" width="484" height="293" style="border-left-width:0px; border-right-width:0px; border-bottom-width:0px; padding-top:0px; padding-left:0px; margin:0px; display:inline; padding-right:0px; border-top-width:0px"></a></p>
+<p><em>Figure 10: File Daemon Config Step 2</em></p>
+<p>Configure the directory where DICOM files will be dumped, then click Next.</p>
+<p><a href="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795117"><img title="image_thumb45" border="0" alt="image_thumb45" src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795118" width="484" height="293" style="border-left-width:0px; border-right-width:0px; border-bottom-width:0px; padding-top:0px; padding-left:0px; margin:0px; display:inline; padding-right:0px; border-top-width:0px"></a></p>
+<p><em>Figure 10: File Daemon Config Step 3</em></p>
+<p>In the screen that follows, click the Add button to add the AE title information for DCMTK as shown in Figure 6 above.&nbsp; Use the same exact information used to configure the DB Daemon.</p>
+<p>Click the Add button again to add the AE Title information for the DB Daemon as shown in Figure 11 below.</p>
+<p><a href="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795119"><img title="image_thumb46" border="0" alt="image_thumb46" src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795120" width="484" height="315" style="border-left-width:0px; border-right-width:0px; border-bottom-width:0px; padding-top:0px; padding-left:0px; margin:0px; display:inline; padding-right:0px; border-top-width:0px"></a></p>
+<p><em>Figure 11: File Daemon Config Step 5</em></p>
+<p>When done configuring AE titles (Figure 12) click Next.&nbsp; In this article, the DB Daemon, the File Daemon, and the DCMTK package are all installed on the same computer so the IP addresses are all the same.&nbsp; This is not the usual case, normally the
+ daemons are installed on a server.</p>
+<p><a href="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795121"><img title="image_thumb47" border="0" alt="image_thumb47" src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795122" width="484" height="293" style="border-left-width:0px; border-right-width:0px; border-bottom-width:0px; padding-top:0px; padding-left:0px; margin:0px; display:inline; padding-right:0px; border-top-width:0px"></a></p>
+<p><em>Figure 12: Done Configuring Trusted AE Titles for File Daemon</em></p>
+<p>Configure the service control aspects as you wish and click Finish. The VMS File Daemon should start running as a service.</p>
+<p><a href="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795123"><img title="image_thumb50" border="0" alt="image_thumb50" src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795124" width="484" height="293" style="border-left-width:0px; border-right-width:0px; border-bottom-width:0px; padding-top:0px; padding-left:0px; margin:0px; display:inline; padding-right:0px; border-top-width:0px"></a></p>
+<p><em>Figure 13: Service control options</em></p>
+<p></p>
+<p>Open the windows service manager (Administrative Services/Services menu item in Windows 7) and verify that both services are installed and running.</p>
+<p><a href="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795125"><img title="image_thumb53" border="0" alt="image_thumb53" src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795126" width="480" height="38" style="border-left-width:0px; border-right-width:0px; border-bottom-width:0px; padding-top:0px; padding-left:0px; display:inline; padding-right:0px; border-top-width:0px"></a></p>
+<p><em>Figure 14: DICOM Daemons are installed and running as Windows Services</em></p>
+<h2>Scripting Eclipse to Script DICOM</h2>
+<p>DICOM Query / Retrieve network operations could be used to find the DICOM UIDs necessary to move the package of Plan, Structure Set, CT Image, and Dose files.&nbsp; Building the right query can be quite challenging for the DICOM novice however, so we simplify
+ that step here by using the Eclipse Scripting API to get the DICOM UIDs needed.</p>
+<p>Download the project “GetDicomCollection” from this site, tweak the parameters in file GetDicomCollection.cs to match your configured environment.</p>
+<pre class="csharpcode">    <span class="kwrd">public</span> <span class="kwrd">const</span> <span class="kwrd">string</span> DCMTK_BIN_PATH= <span class="str">@&quot;C:\variandeveloper\tools\dcmtk-3.6.0-win32-i386\bin&quot;</span>; <span class="rem">// path to DCMTK binaries</span>
+    <span class="kwrd">public</span> <span class="kwrd">const</span> <span class="kwrd">string</span> AET = <span class="str">@&quot;DCMTK&quot;</span>;                 <span class="rem">// local AE title</span>
+    <span class="kwrd">public</span> <span class="kwrd">const</span> <span class="kwrd">string</span> AEC = <span class="str">@&quot;VMSDBD1&quot;</span>;               <span class="rem">// AE title of VMS DB Daemon</span>
+    <span class="kwrd">public</span> <span class="kwrd">const</span> <span class="kwrd">string</span> AEM = <span class="str">@&quot;VMSFD&quot;</span>;                 <span class="rem">// AE title of VMS File Daemon</span>
+    <span class="kwrd">public</span> <span class="kwrd">const</span> <span class="kwrd">string</span> IP_PORT = <span class="str">@&quot; 192.168.15.1 5678&quot;</span>;<span class="rem">// IP address of server hosting the DB Daemon, port daemon is listening to</span>
+    <span class="kwrd">public</span> <span class="kwrd">const</span> <span class="kwrd">string</span> CMD_FILE_FMT = <span class="str">@&quot;{0}\move-{1}({2})-{3}.cmd&quot;</span>;
+
+</pre>
+<p>When done editing; save, compile, etc.</p>
+<p>Check to be sure your DICOM DB Daemon and DICOM File Daemon are running (Figure 14).</p>
+<p>Run Eclipse, load a case that has a plan, structure set, CT data, and dose.&nbsp; Choose menu item Tools/Scripts, then choose the GetDicomCollection.cs script and run it.</p>
+<p><a href="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795512"><img title="image" border="0" alt="image" src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795513" width="644" height="440" style="border-left-width:0px; border-right-width:0px; border-bottom-width:0px; padding-top:0px; padding-left:0px; display:inline; padding-right:0px; border-top-width:0px"></a></p>
+<p><em>Figure 15: Running the Script</em> </p>
+<p>While processing, you’ll stare at a blank DOS command prompt for a minute or so since the standard output has been redirected to a log file. When done, Notepad is shown with the results of from standard out, and the following prompt is displayed.&nbsp; There
+ is no standard error log in this case since all DICOM C-MOVE operations completed successfully.</p>
+<p><a href="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795129"><img title="image" border="0" alt="image" src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795130" width="454" height="263" style="border-left-width:0px; border-right-width:0px; border-bottom-width:0px; padding-top:0px; padding-left:0px; margin:0px; display:inline; padding-right:0px; border-top-width:0px"></a></p>
+<p><em>Figure 16: A successful run</em></p>
+<p>The extracted DICOM files are now sitting in the directory configured as the output directory for the VMS File Daemon, &#43; &lt;patient id&gt; .&nbsp; The extracted files end up in the directory
+<strong><em>C:\Temp\FileService\VMSFD\Brain Case</em></strong> for this example.</p>
+<p><a href="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795131"><img title="image" border="0" alt="image" src="http://download-codeplex.sec.s-msft.com/Download?ProjectName=variandeveloper&DownloadId=795132" width="644" height="301" style="border-left-width:0px; border-right-width:0px; border-bottom-width:0px; padding-top:0px; padding-left:0px; display:inline; padding-right:0px; border-top-width:0px"></a></p>
+<p><em>Figure 17: The extracted DICOM files.</em></p>
+<h2>Summary</h2>
+<p>Varian’s DICOM connectivity solutions provide scriptable access to all of the DICOM data in the Aria database.&nbsp; This article demonstrates one approach that can be used to semi-automatically extract DICOM data from Aria with a combination of Eclipse
+ scripting and DB Daemon scripting.&nbsp; Variants of this approach will prove useful to researchers who need to gain programmatic access to the large amounts of radiotherapy DICOM data stored in their Aria databases.</p>
+</div><div class="ClearBoth"></div>
