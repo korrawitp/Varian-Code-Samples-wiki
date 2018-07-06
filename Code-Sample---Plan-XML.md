@@ -4,7 +4,7 @@ Below is a Eclipse v11 script code sample that extracts the full ESAPI XML descr
 
 This sample has a code extension that generates control point XML and puts it beneath a tag in the plan called "<BeamAndControlPoints>".
 
-{code:c#}
+```csharp
 public void Execute(ScriptContext context /**, System.Windows.Window window**/)
 {
   XmlWriterSettings settings = new XmlWriterSettings();
@@ -91,4 +91,4 @@ protected void WriteBeamAndControlPoints(PlanSetup plan, XmlWriter writer)
   }
   writer.WriteEndElement(); // </BeamAndControlPoints>
 }
-{code:c#}
+```
