@@ -11,5 +11,5 @@
 * [Radiobiological Effect report and Aria Document post](Radiobiological-Effect-report-and-Aria-Document-post)
 
 ## Source Code
-[Repo](https://github.com/VarianAPIs/samples)
-[Project Descriptions](Project-Descriptions)
+* [Repo](https://github.com/VarianAPIs/samples)
+* [Project Descriptions](Project-Descriptions)
