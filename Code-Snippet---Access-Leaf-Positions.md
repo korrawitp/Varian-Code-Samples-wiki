@@ -2,7 +2,7 @@
 
 Below is a simple Eclipse v11 script code snippet that starts with the active patient and iterates through the course, plans, beams, control points and leaf positions.  One could also start this at the active plan by starting from 'context.PlanSetup', or the list of loaded plans by ‘context.PlansInScope’.
 
-{code:c#}
+```csharp
     public void Execute(ScriptContext context /**, System.Windows.Window window**/)
     {
       if (context.Patient == null)
@@ -50,4 +50,4 @@ Below is a simple Eclipse v11 script code snippet that starts with the active pa
             numControlPts, numLeaves),
          "VarianDeveloper"); 
     }
-{code:c#}
+```
