@@ -13,7 +13,7 @@ If needed, install the "Visual C# 2010 Express" installation.  The links below a
 ### 2. Find and read the ESAPI Reference Guide
 Go to [https://my.varian.com](https://my.varian.com), find the Eclipse Scripting API Reference Guide and download it.
 
-: [https://myvarian.com/system/files/B503591R01A-Rev_11-Eclipse_Scripting_API_Reference_Guide.pdf?download=1](https://myvarian.com/system/files/B503591R01A-Rev_11-Eclipse_Scripting_API_Reference_Guide.pdf?download=1)
+[https://myvarian.com/system/files/B503591R01A-Rev_11-Eclipse_Scripting_API_Reference_Guide.pdf?download=1](https://myvarian.com/system/files/B503591R01A-Rev_11-Eclipse_Scripting_API_Reference_Guide.pdf?download=1)
 
 If the link above doesn't work, sign into [https://my.varian.com](https://my.varian.com) and search for "Scripting".
 
