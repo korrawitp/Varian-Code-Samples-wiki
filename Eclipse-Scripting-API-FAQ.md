@@ -11,9 +11,6 @@ The Eclipse Algorithm API is a C++ programming interface and software library fo
 The reference guides were created for Microsoft Visual Studio 2010.  Microsoft Visual Studio 2012 also works well, but there are differences in behavior between Microsoft Visual Studio 2010 and 2012, so the documentation may not apply exactly to 2012.
 
 ### How do I get help when working with Varian's APIs?
-(Preferred method) Post your question on this site under the [discussions tab](https://variandeveloper.codeplex.com/discussions), and someone from the community will answer your question.
-
-### What if I have more questions? Where do I get support?
-
-Send an email to [eclipsedeveloper@varian.com](mailto:eclipsedeveloper@varian.com).
+(Preferred method) Post your question on this site under the [Issues Tab](https://github.com/VarianAPIs/samples/issues), and someone from the community will answer your question.
+Or, send an email to [eclipsedeveloper@varian.com](mailto:eclipsedeveloper@varian.com).
 
