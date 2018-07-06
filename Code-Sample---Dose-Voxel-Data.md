@@ -2,7 +2,7 @@
 
 Below is Eclipse v11 script code that implements a mean dose calculation method for a given structure.
 
-{code:c#}
+```csharp
     public DoseValue CalculateMeanDose(PlanSetup plan, Structure structure)
     {
       Dose dose = plan.Dose;
@@ -59,4 +59,4 @@ Below is Eclipse v11 script code that implements a mean dose calculation method 
       double mean = sum / ((double)count);
       return new DoseValue(mean, doseUnit);
     }
-{code:c#}
+```
