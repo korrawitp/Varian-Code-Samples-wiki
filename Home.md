@@ -1,3 +1,5 @@
+Welcome to our wiki. We are still picking up the pieces from CodePlex, but will be updating the content shortly. For the latest content, check out the [code repo](https://github.com/VarianAPIs/samples) directly, or, for pressing matters, [create an issue](https://github.com/VarianAPIs/samples/issues/new), or contact [eclipsedeveloper@varian.com](mailto:eclipsedeveloper@varian.com).
+
 ## Getting Started with Varian APIs
 * [Getting Started With Eclipse Scripting API (ESAPI) v11](Getting-Started-With-Eclipse-Scripting-API-(ESAPI)-v11)
 * [Eclipse Scripting API FAQ](Eclipse-Scripting-API-FAQ)
