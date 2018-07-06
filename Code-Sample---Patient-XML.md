@@ -2,7 +2,7 @@
 
 Below is a Eclipse v11 script code sample that extracts the full ESAPI XML description for the active patient and saves it to the windows temp directory.  The generated file could be large (a few MBs) and may take a minute or two to create.
 
-{code:c#}
+```csharp
 public void Execute(ScriptContext context)
 {
   XmlWriterSettings settings = new XmlWriterSettings();
@@ -38,4 +38,4 @@ public void Execute(ScriptContext context)
     System.Threading.Thread.Sleep(TimeSpan.FromSeconds(3));
   }
 }
-{code:c#}
+```
