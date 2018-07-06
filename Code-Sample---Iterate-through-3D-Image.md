@@ -2,7 +2,7 @@
 
 Below is a simple Eclipse v11/v13 script code snippet that starts with the active 3D image dataset and iterates through the raw voxel data.
 
-{code:c#}
+```csharp
 public void Execute(ScriptContext context)
 {
   Image image = context.Image;
@@ -26,4 +26,4 @@ public void Execute(ScriptContext context)
     }
   }
 }
-{code:c#}
+```
