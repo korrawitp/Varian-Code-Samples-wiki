@@ -9,7 +9,7 @@ Welcome to our wiki. We are still picking up the pieces from CodePlex, and will 
 * [Blog about ESAPI (by Carlos Anderson)](http://www.carlosjanderson.com)
 
 ## Articles (Under Construction)
-* [Scripting the Varian DICOM DB Daemon with ESAPI + DCMTK](Scripting-the-Varian-DICOM-DB-Daemon-with-ESAPI-+-DCMTK)
+* [Scripting the Varian DICOM DB Daemon with ESAPI + DCMTK](Scripting-the-Varian-DICOM-DB-Daemon-with-ESAPI)
 * [Radiobiological Effect report and Aria Document post](Radiobiological-Effect-report-and-Aria-Document-post)
 
 ## Source Code
