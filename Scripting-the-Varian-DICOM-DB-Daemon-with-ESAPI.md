@@ -125,7 +125,7 @@ Figure 14: DICOM Daemons are installed and running as Windows Services
 Scripting Eclipse to Script DICOM
 DICOM Query / Retrieve network operations could be used to find the DICOM UIDs necessary to move the package of Plan, Structure Set, CT Image, and Dose files.  Building the right query can be quite challenging for the DICOM novice however, so we simplify that step here by using the Eclipse Scripting API to get the DICOM UIDs needed.
 
-Download the project “GetDicomCollection” from this site, tweak the parameters in file GetDicomCollection.cs to match your configured environment.
+Download [GetDicomCollection.cs from this site here](https://github.com/VarianAPIs/Varian-Code-Samples/blob/master/Eclipse%20Scripting%20API/plugins/GetDicomCollection.cs), tweak the parameters in file GetDicomCollection.cs to match your configured environment.
 
     public const string DCMTK_BIN_PATH= @"C:\variandeveloper\tools\dcmtk-3.6.0-win32-i386\bin"; // path to DCMTK binaries
     public const string AET = @"DCMTK";                 // local AE title
