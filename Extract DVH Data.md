@@ -2,7 +2,7 @@
 
 Below is Eclipse v11 script code that extracts DVH data for the first loaded PTV found for the loaded plan and structure set.  The DVH data is written to a file in the user's temp directory called "dvh.csv".
 
-{code:c#}
+```csharp
     public void Execute(ScriptContext context /**, System.Windows.Window window**/)
     {
       if (context.Patient == null || context.PlanSetup == null || 
@@ -57,4 +57,4 @@ Below is Eclipse v11 script code that extracts DVH data for the first loaded PTV
                                 pt.DoseValue.Dose, pt.Volume));
       }
     }
-{code:c#}
+```

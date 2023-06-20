@@ -8,7 +8,7 @@ Binary file plugin script that generates a plan quality report in HTML for the s
 | Project Owner: | Varian Medical Systems, Inc. |
 
 ## GetDicomCollection
-Single file plugin script that generates a DCMTK script to remotely control Varian's DB Daemon. This project goes together with the article [Scripting the Varian DICOM DB Daemon with ESAPI + DCMTK](Scripting-the-Varian-DICOM-DB-Daemon-with-ESAPI-+-DCMTK).
+Single file plugin script that generates a DCMTK script to remotely control Varian's DB Daemon. This project goes together with the article [Scripting the Varian DICOM DB Daemon with ESAPI + DCMTK](Scripting-the-Varian-DICOM-DB-Daemon-with-ESAPI).
 
 | Added: |  February 13, 2014 |
 | Target Platform: | ESAPI v11 or ESAPI v13 |

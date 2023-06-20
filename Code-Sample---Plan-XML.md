@@ -2,7 +2,7 @@
 
 Below is a Eclipse v11 script code sample that extracts the full ESAPI XML description for the active plan and saves it to the windows temp directory.  The generated file could be large (a few MBs) and may take a minute or two to create.
 
-This sample has a code extension that generates control point XML and puts it beneath a tag in the plan called "<BeamAndControlPoints>".
+This sample has a code extension that generates control point XML and puts it beneath a tag in the plan called "`<BeamAndControlPoints>`".
 
 ```csharp
 public void Execute(ScriptContext context /**, System.Windows.Window window**/)
